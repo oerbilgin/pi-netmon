@@ -58,10 +58,10 @@ class SpeedTest(AbstractTest):
 
     def store_results(self):
         print(
-            self.ping_time,
-            self.upload_speed,
-            self.download_speed
-            )
+            f"{{'ping_time': {self.ping_time}, "
+            f"'upload_speed': {self.upload_speed}, "
+            f"'download_speed': {self.download_speed}}},"
+        )
 
     @property
     def download_speed(self):
@@ -94,9 +94,8 @@ class UptimeTest(AbstractTest):
 
     def store_results(self):
         print(
-            self.ping_times,
-            self.ping_success_rate,
-            self.mean_ping_time,
+            f"{{'mean_ping': {self.mean_ping_time}, "
+            f"'ping_success_rate': {self.ping_success_rate}}},"
         )
 
     @property
