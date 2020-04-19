@@ -3,6 +3,18 @@ import subprocess
 import re
 from abc import ABC, abstractmethod
 from time import sleep
+import os
+import datetime
+
+
+LOGFILE_PATH = os.path.expanduser('~/.logs')
+UPTIME_LOGFILE = 'uptime.log'
+SPEED_LOGFILE = 'netspeed.log'
+
+
+def _init_logdir(path):
+    if not os.path.isdir(path):
+        os.makedirs(path)
 
 
 class AbstractTest(ABC):
@@ -57,11 +69,14 @@ class SpeedTest(AbstractTest):
         self._results_dict = self.speed_test.results.dict()
 
     def store_results(self):
-        print(
-            f"{{'ping_time': {self.ping_time}, "
-            f"'upload_speed': {self.upload_speed}, "
-            f"'download_speed': {self.download_speed}}},"
-        )
+        now = datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S')
+        with open(os.path.join(LOGFILE_PATH, SPEED_LOGFILE), 'a') as f:
+            f.write(
+                f"{{'time': {now}, "
+                f"'ping_time_ms': {self.ping_time:.3f}, "
+                f"'download_speed_Mbps': {self.download_speed:.3f}, "
+                f"'upload_speed_Mbps': {self.upload_speed:.3f}}},\n"
+            )
 
     @property
     def download_speed(self):
@@ -93,10 +108,14 @@ class UptimeTest(AbstractTest):
             self.ping_responses.append(resp)
 
     def store_results(self):
-        print(
-            f"{{'mean_ping': {self.mean_ping_time}, "
-            f"'ping_success_rate': {self.ping_success_rate}}},"
-        )
+        _init_logdir(LOGFILE_PATH)
+        now = datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S')
+        with open(os.path.join(LOGFILE_PATH, UPTIME_LOGFILE), 'a') as f:
+            f.write(
+                f"{{'time': {now}, "
+                f"'mean_ping_time_ms': {self.mean_ping_time:.3f}, "
+                f"'ping_success_rate': {self.ping_success_rate}}},\n"
+            )
 
     @property
     def ping_times(self):
@@ -117,9 +136,9 @@ class UptimeTest(AbstractTest):
 
 
 def main():
-    s = SpeedTest()
-    s.run_test()
-    s.store_results()
+    # s = SpeedTest()
+    # s.run_test()
+    # s.store_results()
 
     UptimeTest(servers=[
         '8.8.8.8',  # google DNS
