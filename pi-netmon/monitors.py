@@ -118,9 +118,9 @@ class UptimeTest(AbstractTest):
 
 
 def main():
-    # s = SpeedTest()
-    # s.run_test()
-    # s.store_results()
+    s = SpeedTest()
+    s.run_test()
+    s.store_results()
 
     UptimeTest(servers=[
         '8.8.8.8',  # google DNS
