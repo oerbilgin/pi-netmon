@@ -1,8 +1,53 @@
 import speedtest
+import subprocess
+import re
+from abc import ABC, abstractmethod
+from time import sleep
 
 
-class SpeedTest():
+class AbstractTest(ABC):
+    """
+    Abstract Base Class of a network test.
+
+    Can run a single test, and also continually monitor.
+
+    The following methods must be overwritten:
+    * run_test: The method that runs the test
+    * store_results: A method to store (or simply print)
+      the results of the test.
+    """
     def __init__(self):
+        super().__init__()
+
+    @abstractmethod
+    def run_test(self):
+        """Performs the test"""
+        pass
+
+    @abstractmethod
+    def store_results(self):
+        """Stores the results of the last test."""
+        pass
+
+    def monitor(self, test_interval):
+        """
+        Begins monitoring.
+
+        Runs each test of the monitor at the specified interval,
+        and logs the results as specified.
+
+        Args:
+            test_interval (int): Interval between tests, in seconds.
+        """
+        while True:
+            self.run_test()
+            self.store_results()
+            sleep(test_interval)
+
+
+class SpeedTest(AbstractTest):
+    def __init__(self):
+        super().__init__()
         self.speed_test = speedtest.Speedtest()
 
     def run_test(self):
@@ -10,6 +55,13 @@ class SpeedTest():
         self.speed_test.download()
         self.speed_test.upload()
         self._results_dict = self.speed_test.results.dict()
+
+    def store_results(self):
+        print(
+            self.ping_time,
+            self.upload_speed,
+            self.download_speed
+            )
 
     @property
     def download_speed(self):
@@ -27,10 +79,55 @@ class SpeedTest():
         return self._results_dict['ping']
 
 
+class UptimeTest(AbstractTest):
+    def __init__(self, servers=['8.8.8.8']):
+        super().__init__()
+        self.servers = servers
+
+    def run_test(self):
+        self.ping_responses = []
+        for server in self.servers:
+            resp = str(subprocess.Popen(
+                ["/bin/ping", "-c1", "-W1", server],
+                stdout=subprocess.PIPE).stdout.read())
+            self.ping_responses.append(resp)
+
+    def store_results(self):
+        print(
+            self.ping_times,
+            self.ping_success_rate,
+            self.mean_ping_time,
+        )
+
+    @property
+    def ping_times(self):
+        # regex to get the ping times
+        ping_times = [
+            re.findall(r'time=([0-9]*\.?[0-9]+)', x)
+            for x in self.ping_responses
+        ]
+        return [float(x[0]) for x in ping_times if len(x) != 0]
+
+    @property
+    def ping_success_rate(self):
+        return len(self.ping_times) / len(self.servers)
+
+    @property
+    def mean_ping_time(self):
+        return sum(self.ping_times) / len(self.ping_times)
+
+
 def main():
-    s = SpeedTest()
-    s.run_test()
-    print(s.ping_time, s.upload_speed, s.download_speed)
+    # s = SpeedTest()
+    # s.run_test()
+    # s.store_results()
+
+    UptimeTest(servers=[
+        '8.8.8.8',  # google DNS
+        '8.8.4.4',  # Another google DNS
+        '1.1.1.1',  # cloudflare DNS
+        '139.130.4.5',  # Australia
+        ]).monitor(test_interval=3)
 
 
 if __name__ == '__main__':
